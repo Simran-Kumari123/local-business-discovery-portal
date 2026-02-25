@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   ArrowRight,
@@ -195,6 +196,21 @@ const featuredListings = [
 
 export default function Hero() {
   const [query, setQuery] = useState("");
+  const router = useRouter();
+
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (query.trim()) {
+      router.push(`/businesses?q=${encodeURIComponent(query.trim())}`);
+    } else {
+      router.push('/businesses');
+    }
+  };
+
+  const handleTagSearch = (tag: string) => {
+    setQuery(tag);
+    router.push(`/businesses?q=${encodeURIComponent(tag)}`);
+  };
 
   return (
     <>
@@ -257,7 +273,10 @@ export default function Hero() {
                       className="w-full py-3 bg-transparent text-foreground placeholder-muted-foreground focus:outline-none text-base"
                     />
                   </div>
-                  <button className="flex items-center gap-2 px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-all duration-200 hover:scale-[1.03] whitespace-nowrap shadow-md">
+                  <button
+                    onClick={handleSearch}
+                    className="flex items-center gap-2 px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-all duration-200 hover:scale-[1.03] whitespace-nowrap shadow-md"
+                  >
                     Search <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -271,7 +290,7 @@ export default function Hero() {
                 {tags.map((t) => (
                   <button
                     key={t}
-                    onClick={() => setQuery(t)}
+                    onClick={() => handleTagSearch(t)}
                     className="px-3 py-1 text-xs font-semibold bg-white/15 hover:bg-white/25 border border-white/25 rounded-full text-white transition-all duration-150"
                   >
                     {t}
@@ -282,7 +301,7 @@ export default function Hero() {
               {/* CTA buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link
-                  href="#categories"
+                  href="/businesses"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white text-blue-700 font-bold rounded-xl shadow-xl shadow-blue-900/20 hover:bg-blue-50 hover:scale-[1.03] transition-all duration-200"
                 >
                   Explore Businesses <ArrowRight className="w-4 h-4" />
@@ -373,9 +392,9 @@ export default function Hero() {
                   ))}
                 </div>
 
-                <button className="w-full mt-3 py-2.5 text-sm font-semibold text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-xl hover:bg-white/10 transition-all duration-200">
+                <Link href="/businesses" className="block w-full mt-3 py-2.5 text-sm text-center font-semibold text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-xl hover:bg-white/10 transition-all duration-200">
                   View all nearby businesses →
-                </button>
+                </Link>
               </div>
 
               {/* Floating badge bottom */}
@@ -460,9 +479,9 @@ export default function Hero() {
 
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
             {heroCategories.map(({ Icon, label, color, bg, border }) => (
-              <a
+              <Link
                 key={label}
-                href="#"
+                href={`/businesses?category=${encodeURIComponent(label)}`}
                 className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 ${border} ${bg} hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer group`}
               >
                 <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-blue-600 to-sky-500 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-200">
@@ -471,7 +490,7 @@ export default function Hero() {
                 <span className="text-xs font-semibold text-muted-foreground text-center leading-tight">
                   {label}
                 </span>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -504,9 +523,9 @@ export default function Hero() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {featuredListings.map((biz) => (
-              <a
+              <Link
                 key={biz.name}
-                href="#"
+                href={`/businesses?q=${encodeURIComponent(biz.name)}`}
                 className="bg-card border border-border rounded-2xl p-5 hover:shadow-xl hover:shadow-blue-100/50 dark:hover:shadow-blue-900/30 hover:-translate-y-1 transition-all duration-300 group block"
               >
                 <div className="flex items-start gap-4 mb-3">
@@ -561,7 +580,7 @@ export default function Hero() {
                     </span>
                   </div>
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
 
