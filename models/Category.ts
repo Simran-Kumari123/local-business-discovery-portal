@@ -10,7 +10,7 @@ export interface ICategory extends Document {
     updatedAt: Date
 }
 
-const CategorySchema = new Schema<ICategory>(
+const CategorySchema = new Schema(
     {
         name: { type: String, required: true, unique: true, trim: true },
         slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
@@ -21,14 +21,13 @@ const CategorySchema = new Schema<ICategory>(
 )
 
 // Auto-generate slug from name before saving
-CategorySchema.pre('validate', function (next) {
+CategorySchema.pre('save', function () {
     if (this.isModified('name') && !this.slug) {
-        this.slug = this.name
+        this.slug = (this.name as string)
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/(^-|-$)/g, '')
     }
-    next()
 })
 
 const Category: Model<ICategory> =
