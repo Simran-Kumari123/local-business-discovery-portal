@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
+import cloudinary from '@/lib/cloudinary'
 
 export async function POST(req: NextRequest) {
     try {
@@ -28,22 +27,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'File size must be under 5 MB' }, { status: 400 })
         }
 
+        // Convert file to base64 data URI for Cloudinary upload
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
+        const base64 = buffer.toString('base64')
+        const dataUri = `data:${file.type};base64,${base64}`
 
-        // Ensure upload directory exists
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads')
-        await mkdir(uploadDir, { recursive: true })
+        // Upload to Cloudinary
+        const result = await cloudinary.uploader.upload(dataUri, {
+            folder: 'localbiz/businesses',
+            resource_type: 'image',
+            transformation: [
+                { width: 1200, height: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' },
+            ],
+        })
 
-        // Generate unique filename
-        const ext = file.name.split('.').pop()
-        const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-        const filePath = path.join(uploadDir, uniqueName)
-
-        await writeFile(filePath, buffer)
-
-        const url = `/uploads/${uniqueName}`
-        return NextResponse.json({ url, message: 'File uploaded successfully' })
+        return NextResponse.json({
+            url: result.secure_url,
+            public_id: result.public_id,
+            message: 'File uploaded successfully',
+        })
     } catch (err: unknown) {
         console.error('Upload error:', err)
         return NextResponse.json({ error: 'Upload failed' }, { status: 500 })

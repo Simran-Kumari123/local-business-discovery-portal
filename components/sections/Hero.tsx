@@ -22,12 +22,12 @@ import {
   Loader2,
 } from "lucide-react";
 
-const tags = ["Restaurants", "Gyms", "Salons", "Clinics", "Schools"];
+const tags = ["Restaurant", "Gyms", "Salons", "Clinics", "Schools"];
 
 const heroCategories = [
   {
     Icon: UtensilsCrossed,
-    label: "Restaurants",
+    label: "Restaurant",
     color: "text-orange-500",
     bg: "bg-orange-50 dark:bg-orange-900/20",
     border: "border-orange-200 dark:border-orange-800",
