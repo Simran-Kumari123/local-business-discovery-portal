@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +19,7 @@ import {
   ChevronRight,
   BadgeCheck,
   Building2,
+  Loader2,
 } from "lucide-react";
 
 const tags = ["Restaurants", "Gyms", "Salons", "Clinics", "Schools"];
@@ -68,45 +69,6 @@ const heroCategories = [
   },
 ];
 
-const panelBusinesses = [
-  {
-    name: "The Masala House",
-    category: "Restaurant",
-    rating: 4.9,
-    reviews: 312,
-    tag: "Top Rated",
-    tagColor:
-      "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-    distance: "0.4 km",
-    img: "🍛",
-    imgBg: "bg-orange-100 dark:bg-orange-900/30",
-  },
-  {
-    name: "FitZone Elite",
-    category: "Gym & Fitness",
-    rating: 4.8,
-    reviews: 189,
-    tag: "Trending",
-    tagColor:
-      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    distance: "1.2 km",
-    img: "🏋️",
-    imgBg: "bg-blue-100 dark:bg-blue-900/30",
-  },
-  {
-    name: "Glow Studio",
-    category: "Salon & Beauty",
-    rating: 4.7,
-    reviews: 98,
-    tag: "New",
-    tagColor:
-      "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
-    distance: "0.8 km",
-    img: "💅",
-    imgBg: "bg-pink-100 dark:bg-pink-900/30",
-  },
-];
-
 const trustStats = [
   { value: "50K+", label: "Businesses", icon: Building2 },
   { value: "2M+", label: "Happy Users", icon: Sparkles },
@@ -114,89 +76,65 @@ const trustStats = [
   { value: "200+", label: "Cities", icon: MapPin },
 ];
 
-const featuredListings = [
-  {
-    name: "The Masala House",
-    cat: "Restaurant",
-    rating: 4.9,
-    reviews: 312,
-    img: "🍛",
-    open: true,
-    bg: "bg-orange-50 dark:bg-orange-900/20",
-    tag: "⭐ Top Rated",
-    tagClass:
-      "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-    desc: "Authentic North Indian cuisine in a cozy family-friendly setting.",
-  },
-  {
-    name: "FitZone Elite",
-    cat: "Gym & Fitness",
-    rating: 4.8,
-    reviews: 189,
-    img: "🏋️",
-    open: true,
-    bg: "bg-blue-50 dark:bg-blue-900/20",
-    tag: "🔥 Trending",
-    tagClass:
-      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    desc: "Modern equipment, expert trainers, and flexible monthly plans.",
-  },
-  {
-    name: "Glow Studio",
-    cat: "Salon & Beauty",
-    rating: 4.7,
-    reviews: 98,
-    img: "💅",
-    open: false,
-    bg: "bg-pink-50 dark:bg-pink-900/20",
-    tag: "✨ New",
-    tagClass:
-      "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
-    desc: "Premium skincare treatments and bridal makeup packages.",
-  },
-  {
-    name: "MedCare Clinic",
-    cat: "Healthcare",
-    rating: 4.9,
-    reviews: 245,
-    img: "🏥",
-    open: true,
-    bg: "bg-emerald-50 dark:bg-emerald-900/20",
-    tag: "✅ Verified",
-    tagClass:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-    desc: "General practice & specialist consultations with online booking.",
-  },
-  {
-    name: "BookNest Edu",
-    cat: "Education",
-    rating: 4.6,
-    reviews: 77,
-    img: "📚",
-    open: true,
-    bg: "bg-violet-50 dark:bg-violet-900/20",
-    tag: "🎓 Popular",
-    tagClass:
-      "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
-    desc: "Coaching classes for grades 8–12 with weekend batch options.",
-  },
-  {
-    name: "AutoPro Services",
-    cat: "Auto Services",
-    rating: 4.5,
-    reviews: 134,
-    img: "🔧",
-    open: false,
-    bg: "bg-sky-50 dark:bg-sky-900/20",
-    tag: "🏆 Award 2024",
-    tagClass: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
-    desc: "Trusted car servicing, denting, painting, and 3M accessories.",
-  },
-];
+interface FeaturedBusiness {
+  _id: string;
+  businessName: string;
+  category: string;
+  description: string;
+  averageRating: number;
+  totalReviews: number;
+  images: string[];
+  city: string;
+  area: string;
+  openingHours: string;
+}
+
+// Category emoji map for business cards
+const categoryEmoji: Record<string, string> = {
+  Restaurant: "🍛",
+  "Gym & Fitness": "🏋️",
+  "Salon & Spa": "💅",
+  Healthcare: "🏥",
+  Education: "📚",
+  Shopping: "🛍️",
+  Technology: "💻",
+  "Auto Services": "🔧",
+  "Home Services": "🏠",
+  Other: "🏢",
+};
+
+const categoryBg: Record<string, string> = {
+  Restaurant: "bg-orange-50 dark:bg-orange-900/20",
+  "Gym & Fitness": "bg-blue-50 dark:bg-blue-900/20",
+  "Salon & Spa": "bg-pink-50 dark:bg-pink-900/20",
+  Healthcare: "bg-emerald-50 dark:bg-emerald-900/20",
+  Education: "bg-violet-50 dark:bg-violet-900/20",
+  Shopping: "bg-amber-50 dark:bg-amber-900/20",
+  Technology: "bg-sky-50 dark:bg-sky-900/20",
+  "Auto Services": "bg-cyan-50 dark:bg-cyan-900/20",
+  Other: "bg-gray-50 dark:bg-gray-900/20",
+};
 
 export default function Hero() {
   const [query, setQuery] = useState("");
   const router = useRouter();
+  const [featuredBusinesses, setFeaturedBusinesses] = useState<FeaturedBusiness[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const res = await fetch("/api/business/featured");
+        const data = await res.json();
+        setFeaturedBusinesses(data.businesses || []);
+      } catch {
+        console.error("Failed to fetch featured businesses");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeatured();
+  }, []);
 
   const handleSearch = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -241,7 +179,7 @@ export default function Hero() {
                 <span>India&apos;s #1 Local Business Directory</span>
               </div>
 
-              {/* Main headline — ALWAYS VISIBLE, no opacity-0 */}
+              {/* Main headline */}
               <h1
                 className="font-extrabold text-[2.6rem] sm:text-5xl lg:text-[3.4rem] leading-[1.1] tracking-tight mb-5"
                 style={{ fontFamily: "var(--font-sora), sans-serif" }}
@@ -269,6 +207,7 @@ export default function Hero() {
                       type="text"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                       placeholder="Search restaurants, gyms, salons..."
                       className="w-full py-3 bg-transparent text-foreground placeholder-muted-foreground focus:outline-none text-base"
                     />
@@ -315,11 +254,11 @@ export default function Hero() {
               </div>
             </div>
 
-            {/* ── RIGHT: Live Business Panel ── */}
+            {/* ── RIGHT: Live Business Panel (top 3 from DB) ── */}
             <div className="hidden lg:block relative pb-12">
               {/* Floating badge top */}
               <div className="absolute -top-5 -right-2 z-10 flex items-center gap-2 bg-yellow-400 text-yellow-900 font-bold text-sm px-4 py-2 rounded-2xl shadow-lg">
-                <TrendingUp className="w-4 h-4" /> +240 added today
+                <TrendingUp className="w-4 h-4" /> New This Week
               </div>
 
               {/* Glass panel */}
@@ -329,71 +268,77 @@ export default function Hero() {
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span className="text-white text-sm font-semibold">
-                      Businesses Near You
+                      Recently Added
                     </span>
                   </div>
                   <span className="flex items-center gap-1 text-blue-200 text-xs font-medium">
-                    <MapPin className="w-3 h-3" /> Ahmedabad
+                    <Star className="w-3 h-3" /> Top Rated
                   </span>
                 </div>
 
-                {/* Cards */}
+                {/* Cards — show first 3 real businesses */}
                 <div className="flex flex-col gap-3">
-                  {panelBusinesses.map((biz) => (
-                    <div
-                      key={biz.name}
-                      className="bg-card rounded-2xl p-4 flex items-center gap-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-250 cursor-pointer group"
-                    >
-                      <div
-                        className={`w-12 h-12 rounded-xl ${biz.imgBg} flex items-center justify-center text-2xl shrink-0`}
+                  {loading ? (
+                    <div className="flex items-center justify-center py-10">
+                      <Loader2 className="w-6 h-6 animate-spin text-white/60" />
+                    </div>
+                  ) : featuredBusinesses.length > 0 ? (
+                    featuredBusinesses.slice(0, 3).map((biz) => (
+                      <Link
+                        key={biz._id}
+                        href={`/business/${biz._id}`}
+                        className="bg-card rounded-2xl p-4 flex items-center gap-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-250 cursor-pointer group"
                       >
-                        {biz.img}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
+                        <div
+                          className={`w-12 h-12 rounded-xl ${categoryBg[biz.category] || "bg-gray-50 dark:bg-gray-900/20"} flex items-center justify-center text-2xl shrink-0`}
+                        >
+                          {biz.images && biz.images.length > 0 ? (
+                            <img src={biz.images[0]} alt="" className="w-full h-full object-cover rounded-xl" />
+                          ) : (
+                            categoryEmoji[biz.category] || "🏢"
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
                           <p
                             className="font-bold text-card-foreground text-sm truncate"
                             style={{
                               fontFamily: "var(--font-sora), sans-serif",
                             }}
                           >
-                            {biz.name}
+                            {biz.businessName}
                           </p>
-                          <span
-                            className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${biz.tagColor}`}
-                          >
-                            {biz.tag}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-1">
-                          {biz.category}
-                        </p>
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1">
-                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                            <span className="text-xs font-bold text-card-foreground">
-                              {biz.rating}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              ({biz.reviews})
+                          <p className="text-xs text-muted-foreground mb-1">
+                            {biz.category}
+                          </p>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
+                              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                              <span className="text-xs font-bold text-card-foreground">
+                                {(biz.averageRating || 0) > 0 ? biz.averageRating.toFixed(1) : "New"}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                ({biz.totalReviews || 0})
+                              </span>
+                            </div>
+                            <span className="text-muted-foreground text-xs">·</span>
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <MapPin className="w-3 h-3" />
+                              {biz.area}, {biz.city}
                             </span>
                           </div>
-                          <span className="text-muted-foreground text-xs">
-                            ·
-                          </span>
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <MapPin className="w-3 h-3" />
-                            {biz.distance}
-                          </span>
                         </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-white/50 text-sm">
+                      No businesses registered yet
                     </div>
-                  ))}
+                  )}
                 </div>
 
                 <Link href="/businesses" className="block w-full mt-3 py-2.5 text-sm text-center font-semibold text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded-xl hover:bg-white/10 transition-all duration-200">
-                  View all nearby businesses →
+                  View all businesses →
                 </Link>
               </div>
 
@@ -401,7 +346,7 @@ export default function Hero() {
               <div className="absolute -bottom-3 -left-4 flex items-center gap-2 bg-card rounded-2xl px-4 py-2.5 shadow-xl border border-border">
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span className="text-card-foreground text-xs font-bold">
-                  50,000+ Verified Listings
+                  Real Business Listings
                 </span>
               </div>
             </div>
@@ -470,7 +415,7 @@ export default function Hero() {
               </p>
             </div>
             <Link
-              href="#categories"
+              href="/businesses"
               className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
             >
               All <ChevronRight className="w-4 h-4" />
@@ -497,14 +442,14 @@ export default function Hero() {
       </section>
 
       {/* ════════════════════════════════════════════
-          4. FEATURED LISTINGS GRID
+          4. TOP BUSINESSES THIS WEEK — REAL DATA
       ════════════════════════════════════════════ */}
       <section className="bg-secondary/50 py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <div>
               <span className="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-full border border-blue-100 dark:border-blue-800 mb-2">
-                Featured Today
+                Newly Registered
               </span>
               <h2
                 className="text-2xl font-bold text-foreground"
@@ -514,80 +459,98 @@ export default function Hero() {
               </h2>
             </div>
             <Link
-              href="#"
+              href="/businesses"
               className="hidden sm:flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
             >
               View all <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {featuredListings.map((biz) => (
-              <Link
-                key={biz.name}
-                href={`/businesses?q=${encodeURIComponent(biz.name)}`}
-                className="bg-card border border-border rounded-2xl p-5 hover:shadow-xl hover:shadow-blue-100/50 dark:hover:shadow-blue-900/30 hover:-translate-y-1 transition-all duration-300 group block"
-              >
-                <div className="flex items-start gap-4 mb-3">
-                  <div
-                    className={`w-14 h-14 rounded-xl ${biz.bg} flex items-center justify-center text-3xl shrink-0`}
-                  >
-                    {biz.img}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3
-                      className="font-bold text-card-foreground text-base truncate"
-                      style={{ fontFamily: "var(--font-sora), sans-serif" }}
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : featuredBusinesses.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {featuredBusinesses.map((biz) => (
+                <Link
+                  key={biz._id}
+                  href={`/business/${biz._id}`}
+                  className="bg-card border border-border rounded-2xl p-5 hover:shadow-xl hover:shadow-blue-100/50 dark:hover:shadow-blue-900/30 hover:-translate-y-1 transition-all duration-300 group block"
+                >
+                  <div className="flex items-start gap-4 mb-3">
+                    <div
+                      className={`w-14 h-14 rounded-xl ${categoryBg[biz.category] || "bg-gray-50 dark:bg-gray-900/20"} flex items-center justify-center text-3xl shrink-0 overflow-hidden`}
                     >
-                      {biz.name}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      {biz.cat}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-bold text-card-foreground">
-                        {biz.rating}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        ({biz.reviews} reviews)
+                      {biz.images && biz.images.length > 0 ? (
+                        <img src={biz.images[0]} alt="" className="w-full h-full object-cover rounded-xl" />
+                      ) : (
+                        categoryEmoji[biz.category] || "🏢"
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        className="font-bold text-card-foreground text-base truncate"
+                        style={{ fontFamily: "var(--font-sora), sans-serif" }}
+                      >
+                        {biz.businessName}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {biz.category}
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm font-bold text-card-foreground">
+                          {(biz.averageRating || 0) > 0 ? biz.averageRating.toFixed(1) : "New"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          ({biz.totalReviews || 0} {(biz.totalReviews || 0) === 1 ? 'review' : 'reviews'})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-2">
+                    {biz.description}
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <MapPin className="w-3 h-3" />
+                      {biz.area}, {biz.city}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      {biz.openingHours && (
+                        <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          {biz.openingHours}
+                        </span>
+                      )}
+                      <span className="text-xs font-bold text-primary group-hover:underline">
+                        View →
                       </span>
                     </div>
                   </div>
-                </div>
-
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                  {biz.desc}
-                </p>
-
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-xs font-bold px-2.5 py-1 rounded-full ${biz.tagClass}`}
-                  >
-                    {biz.tag}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`flex items-center gap-1 text-xs font-semibold ${biz.open ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${biz.open ? "bg-emerald-400" : "bg-red-400"}`}
-                      />
-                      {biz.open ? "Open Now" : "Closed"}
-                    </span>
-                    <span className="text-xs font-bold text-primary group-hover:underline">
-                      View →
-                    </span>
-                  </div>
-                </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-card border border-border rounded-2xl">
+              <Building2 className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-muted-foreground mb-4">No businesses registered yet. Be the first!</p>
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-all duration-200"
+              >
+                Register Your Business <ArrowRight className="w-4 h-4" />
               </Link>
-            ))}
-          </div>
+            </div>
+          )}
 
           {/* Mobile view all */}
           <div className="sm:hidden mt-6 text-center">
             <Link
-              href="#"
+              href="/businesses"
               className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-all duration-200"
             >
               View All Businesses <ArrowRight className="w-4 h-4" />
