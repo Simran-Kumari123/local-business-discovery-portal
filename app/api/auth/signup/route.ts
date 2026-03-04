@@ -28,10 +28,10 @@ export async function POST(req: NextRequest) {
         const user = await User.create({ name, email: email.toLowerCase(), password: hashed })
 
         // Create JWT and set HTTP-only cookie
-        const token = signToken({ userId: user._id.toString(), email: user.email })
+        const token = signToken({ userId: user._id.toString(), email: user.email, role: user.role, name: user.name })
 
         const res = NextResponse.json(
-            { message: 'Account created successfully', user: { id: user._id, name: user.name, email: user.email } },
+            { message: 'Account created successfully', user: { id: user._id, name: user.name, email: user.email, role: user.role } },
             { status: 201 }
         )
 

@@ -23,10 +23,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
         }
 
-        const token = signToken({ userId: user._id.toString(), email: user.email })
+        const token = signToken({ userId: user._id.toString(), email: user.email, role: user.role, name: user.name })
 
         const res = NextResponse.json(
-            { message: 'Logged in successfully', user: { id: user._id, name: user.name, email: user.email } },
+            { message: 'Logged in successfully', user: { id: user._id, name: user.name, email: user.email, role: user.role } },
             { status: 200 }
         )
 

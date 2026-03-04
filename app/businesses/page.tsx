@@ -18,6 +18,7 @@ import {
     Sparkles,
     SlidersHorizontal,
     Tag,
+    Star,
 } from 'lucide-react'
 
 interface Business {
@@ -35,6 +36,8 @@ interface Business {
     area: string
     openingHours: string
     images: string[]
+    averageRating: number
+    totalReviews: number
     createdAt: string
     updatedAt: string
 }
@@ -445,6 +448,28 @@ function BusinessListingsContent() {
                                                 >
                                                     {biz.businessName}
                                                 </h3>
+
+                                                {/* ★ Rating row */}
+                                                <div className="flex items-center gap-1.5 mb-2">
+                                                    <div className="flex items-center gap-0.5">
+                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                            <Star
+                                                                key={star}
+                                                                className={`w-3.5 h-3.5 ${star <= Math.round(biz.averageRating || 0)
+                                                                        ? 'fill-amber-400 text-amber-400'
+                                                                        : 'fill-none text-gray-300 dark:text-gray-600'
+                                                                    }`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs font-bold text-foreground">
+                                                        {(biz.averageRating || 0) > 0 ? (biz.averageRating).toFixed(1) : '—'}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        ({biz.totalReviews || 0} {(biz.totalReviews || 0) === 1 ? 'review' : 'reviews'})
+                                                    </span>
+                                                </div>
+
                                                 <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{biz.description}</p>
 
                                                 {/* Meta info */}

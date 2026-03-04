@@ -6,6 +6,8 @@ const JWT_SECRET = process.env.JWT_SECRET!
 export interface JwtPayload {
     userId: string
     email: string
+    role: string
+    name: string
 }
 
 /** Create a signed JWT token */

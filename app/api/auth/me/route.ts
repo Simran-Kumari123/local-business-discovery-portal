@@ -17,7 +17,7 @@ export async function GET() {
         }
 
         return NextResponse.json({
-            user: { id: user._id, name: user.name, email: user.email },
+            user: { id: user._id, name: user.name, email: user.email, role: user.role },
         })
     } catch (err: unknown) {
         console.error('Auth check error:', err)

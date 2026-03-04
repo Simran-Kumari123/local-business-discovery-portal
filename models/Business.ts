@@ -16,6 +16,8 @@ export interface IBusiness extends Document {
     area: string                             // neighbourhood / locality
     openingHours: string
     images: string[]                         // stored file paths
+    averageRating: number
+    totalReviews: number
     createdAt: Date
     updatedAt: Date
 }
@@ -36,6 +38,8 @@ const BusinessSchema = new Schema<IBusiness>(
         area: { type: String, required: true, trim: true },
         openingHours: { type: String, default: '' },
         images: [{ type: String }],
+        averageRating: { type: Number, default: 0, min: 0, max: 5 },
+        totalReviews: { type: Number, default: 0, min: 0 },
     },
     { timestamps: true }
 )

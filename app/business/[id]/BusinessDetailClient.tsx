@@ -12,8 +12,16 @@ import {
     Share2,
     ChevronLeft,
     ChevronRight,
+    Loader2,
+    MessageSquare,
+    Star,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '@/components/providers/AuthProvider'
+import StarDisplay from '@/components/reviews/StarDisplay'
+import RatingBreakdown from '@/components/reviews/RatingBreakdown'
+import ReviewForm from '@/components/reviews/ReviewForm'
+import ReviewCard from '@/components/reviews/ReviewCard'
 
 interface Business {
     _id: string
@@ -30,13 +38,92 @@ interface Business {
     area: string
     openingHours: string
     images: string[]
+    averageRating: number
+    totalReviews: number
     createdAt: string
     updatedAt: string
 }
 
+interface ReviewUser {
+    _id: string
+    name: string
+    email: string
+}
+
+interface Review {
+    _id: string
+    user: ReviewUser
+    rating: number
+    comment: string
+    createdAt: string
+    updatedAt: string
+}
+
+interface RatingInfo {
+    averageRating: number
+    totalReviews: number
+    breakdown: Record<number, number>
+}
+
 export default function BusinessDetailClient({ business }: { business: Business }) {
+    const { user } = useAuth()
     const [currentImage, setCurrentImage] = useState(0)
     const hasImages = business.images && business.images.length > 0
+
+    // Reviews state
+    const [reviews, setReviews] = useState<Review[]>([])
+    const [ratingInfo, setRatingInfo] = useState<RatingInfo>({
+        averageRating: business.averageRating || 0,
+        totalReviews: business.totalReviews || 0,
+        breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+    })
+    const [reviewsLoading, setReviewsLoading] = useState(true)
+    const [reviewPage, setReviewPage] = useState(1)
+    const [totalReviewPages, setTotalReviewPages] = useState(1)
+    const [editingReview, setEditingReview] = useState<Review | null>(null)
+
+    // Check if current user already has a review
+    const userReview = user ? reviews.find((r) => r.user._id === user.id) : null
+
+    const fetchReviews = useCallback(async () => {
+        setReviewsLoading(true)
+        try {
+            const res = await fetch(`/api/reviews?businessId=${business._id}&page=${reviewPage}&limit=10`)
+            const data = await res.json()
+            setReviews(data.reviews || [])
+            if (data.ratingInfo) {
+                setRatingInfo(data.ratingInfo)
+            }
+            setTotalReviewPages(data.pagination?.totalPages || 1)
+        } catch {
+            console.error('Failed to fetch reviews')
+        } finally {
+            setReviewsLoading(false)
+        }
+    }, [business._id, reviewPage])
+
+    useEffect(() => {
+        fetchReviews()
+    }, [fetchReviews])
+
+    const handleReviewSubmitted = () => {
+        fetchReviews()
+        setEditingReview(null)
+    }
+
+    const handleReviewDeleted = () => {
+        fetchReviews()
+    }
+
+    const handleEditReview = (review: Review) => {
+        setEditingReview(review)
+        // Scroll to form
+        document.getElementById('review-form-section')?.scrollIntoView({ behavior: 'smooth' })
+    }
+
+    const handleCancelEdit = () => {
+        setEditingReview(null)
+    }
 
     const handleShare = async () => {
         const url = window.location.href
@@ -82,9 +169,29 @@ export default function BusinessDetailClient({ business }: { business: Business 
                             >
                                 {business.businessName}
                             </h1>
-                            <div className="flex items-center gap-2 text-blue-100">
+                            <div className="flex items-center gap-3 text-blue-100 mb-2">
                                 <MapPin className="w-4 h-4" />
                                 <span>{business.area}, {business.city}, {business.state} – {business.pincode}</span>
+                            </div>
+                            {/* Rating in header */}
+                            <div className="flex items-center gap-2 mt-2">
+                                <div className="flex items-center gap-0.5">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star
+                                            key={star}
+                                            className={`w-5 h-5 ${star <= Math.round(ratingInfo.averageRating)
+                                                ? 'fill-amber-400 text-amber-400'
+                                                : 'fill-none text-white/40'
+                                                }`}
+                                        />
+                                    ))}
+                                </div>
+                                <span className="text-white font-bold text-lg">
+                                    {ratingInfo.averageRating > 0 ? ratingInfo.averageRating.toFixed(1) : '—'}
+                                </span>
+                                <span className="text-blue-200 text-sm">
+                                    ({ratingInfo.totalReviews} {ratingInfo.totalReviews === 1 ? 'review' : 'reviews'})
+                                </span>
                             </div>
                         </div>
                         <button
@@ -105,7 +212,7 @@ export default function BusinessDetailClient({ business }: { business: Business 
             {/* Content */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
                 <div className="grid lg:grid-cols-3 gap-8">
-                    {/* Left — Image + Description */}
+                    {/* Left — Image + Description + Reviews */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Image Gallery */}
                         {hasImages && (
@@ -181,10 +288,156 @@ export default function BusinessDetailClient({ business }: { business: Business 
                                 {business.description}
                             </p>
                         </div>
+
+                        {/* ═══════════════════════════════════════
+                            RATING BREAKDOWN
+                        ═══════════════════════════════════════ */}
+                        <RatingBreakdown
+                            breakdown={ratingInfo.breakdown}
+                            totalReviews={ratingInfo.totalReviews}
+                            averageRating={ratingInfo.averageRating}
+                        />
+
+                        {/* ═══════════════════════════════════════
+                            REVIEW FORM
+                        ═══════════════════════════════════════ */}
+                        <div id="review-form-section">
+                            {/* If user already reviewed AND is not editing, show a message */}
+                            {userReview && !editingReview ? (
+                                <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
+                                    <h3
+                                        className="text-lg font-bold text-foreground mb-3"
+                                        style={{ fontFamily: 'var(--font-sora), sans-serif' }}
+                                    >
+                                        ✅ You&apos;ve Already Reviewed
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground mb-4">
+                                        You&apos;ve already submitted a review for this business. You can edit or delete it from the reviews section below.
+                                    </p>
+                                    <button
+                                        onClick={() => handleEditReview(userReview)}
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-all duration-200 hover:scale-[1.03] shadow-md text-sm"
+                                    >
+                                        ✏️ Edit Your Review
+                                    </button>
+                                </div>
+                            ) : (
+                                <ReviewForm
+                                    businessId={business._id}
+                                    onReviewSubmitted={handleReviewSubmitted}
+                                    existingReview={editingReview ? {
+                                        _id: editingReview._id,
+                                        rating: editingReview.rating,
+                                        comment: editingReview.comment,
+                                    } : null}
+                                />
+                            )}
+                            {editingReview && (
+                                <button
+                                    onClick={handleCancelEdit}
+                                    className="mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
+                                >
+                                    ← Cancel editing
+                                </button>
+                            )}
+                        </div>
+
+                        {/* ═══════════════════════════════════════
+                            REVIEWS LIST
+                        ═══════════════════════════════════════ */}
+                        <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
+                            <h3
+                                className="text-lg font-bold text-foreground mb-5 flex items-center gap-2"
+                                style={{ fontFamily: 'var(--font-sora), sans-serif' }}
+                            >
+                                <MessageSquare className="w-5 h-5 text-primary" />
+                                Customer Reviews
+                                {ratingInfo.totalReviews > 0 && (
+                                    <span className="text-sm font-medium text-muted-foreground">
+                                        ({ratingInfo.totalReviews})
+                                    </span>
+                                )}
+                            </h3>
+
+                            {reviewsLoading ? (
+                                <div className="flex items-center justify-center py-10">
+                                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                </div>
+                            ) : reviews.length > 0 ? (
+                                <div className="space-y-4">
+                                    {reviews.map((review) => (
+                                        <ReviewCard
+                                            key={review._id}
+                                            review={review}
+                                            onDelete={handleReviewDeleted}
+                                            onEdit={handleEditReview}
+                                        />
+                                    ))}
+
+                                    {/* Review pagination */}
+                                    {totalReviewPages > 1 && (
+                                        <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-border">
+                                            <button
+                                                onClick={() => setReviewPage((p) => Math.max(1, p - 1))}
+                                                disabled={reviewPage === 1}
+                                                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                ← Prev
+                                            </button>
+                                            <span className="text-xs text-muted-foreground font-medium">
+                                                Page {reviewPage} of {totalReviewPages}
+                                            </span>
+                                            <button
+                                                onClick={() => setReviewPage((p) => Math.min(totalReviewPages, p + 1))}
+                                                disabled={reviewPage === totalReviewPages}
+                                                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                Next →
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <MessageSquare className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                                    <p className="text-muted-foreground text-sm">
+                                        No reviews yet. Be the first to review this business!
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right — Contact + Location card */}
                     <div className="space-y-6">
+                        {/* Rating Summary Card */}
+                        <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
+                            <h3
+                                className="text-lg font-bold text-foreground mb-4"
+                                style={{ fontFamily: 'var(--font-sora), sans-serif' }}
+                            >
+                                ⭐ Overall Rating
+                            </h3>
+                            <div className="text-center">
+                                <div
+                                    className="text-4xl font-extrabold text-foreground mb-1"
+                                    style={{ fontFamily: 'var(--font-sora), sans-serif' }}
+                                >
+                                    {ratingInfo.averageRating > 0 ? ratingInfo.averageRating.toFixed(1) : '—'}
+                                </div>
+                                <StarDisplay
+                                    rating={ratingInfo.averageRating}
+                                    totalReviews={ratingInfo.totalReviews}
+                                    size="md"
+                                    showNumber={false}
+                                    className="justify-center"
+                                />
+                                <p className="text-xs text-muted-foreground mt-2">
+                                    Based on {ratingInfo.totalReviews} {ratingInfo.totalReviews === 1 ? 'review' : 'reviews'}
+                                </p>
+                            </div>
+                        </div>
+
                         {/* Contact Info */}
                         <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
                             <h3
