@@ -1,80 +1,70 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/places/details?placeId=...
-// Returns detailed info about a specific place from Google Places API
-
+// Returns detailed info about a specific place using Nominatim lookup
 export async function GET(req: NextRequest) {
-    try {
-        const apiKey = process.env.GOOGLE_MAPS_API_KEY
-        if (!apiKey) {
-            return NextResponse.json(
-                { error: 'Google Maps API key not configured' },
-                { status: 500 }
-            )
-        }
+  try {
+    const { searchParams } = new URL(req.url);
+    const placeId = searchParams.get("placeId");
 
-        const { searchParams } = new URL(req.url)
-        const placeId = searchParams.get('placeId')
-
-        if (!placeId) {
-            return NextResponse.json(
-                { error: 'Place ID is required' },
-                { status: 400 }
-            )
-        }
-
-        const fields = 'name,formatted_address,formatted_phone_number,website,opening_hours,geometry,rating,user_ratings_total,photos,reviews,price_level,types,url,business_status'
-        const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${apiKey}&language=en`
-
-        const response = await fetch(url)
-        const data = await response.json()
-
-        if (data.status !== 'OK') {
-            return NextResponse.json(
-                { error: `Google Places API error: ${data.status}` },
-                { status: 502 }
-            )
-        }
-
-        const place = data.result
-        const photos = (place.photos || []).slice(0, 5).map(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (p: any) => `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${p.photo_reference}&key=${apiKey}`
-        )
-
-        return NextResponse.json({
-            placeId,
-            name: place.name,
-            address: place.formatted_address,
-            phone: place.formatted_phone_number || '',
-            website: place.website || '',
-            location: {
-                lat: place.geometry?.location?.lat,
-                lng: place.geometry?.location?.lng,
-            },
-            rating: place.rating || 0,
-            totalRatings: place.user_ratings_total || 0,
-            priceLevel: place.price_level,
-            types: place.types || [],
-            openNow: place.opening_hours?.open_now ?? null,
-            openingHours: place.opening_hours?.weekday_text || [],
-            photos,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            reviews: (place.reviews || []).slice(0, 5).map((r: any) => ({
-                author: r.author_name,
-                rating: r.rating,
-                text: r.text,
-                time: r.relative_time_description,
-                profilePhoto: r.profile_photo_url,
-            })),
-            googleMapsUrl: place.url || '',
-            businessStatus: place.business_status,
-        })
-    } catch (err: unknown) {
-        console.error('Place details error:', err)
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
-        )
+    if (!placeId) {
+      return NextResponse.json(
+        { error: "Place ID is required" },
+        { status: 400 },
+      );
     }
+
+    // Nominatim lookup by place_id
+    const url = `https://nominatim.openstreetmap.org/lookup?format=json&addressdetails=1&extratags=1&namedetails=1&place_id=${encodeURIComponent(placeId)}`;
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "local-business-discovery-portal/1.0 (student demo)",
+      },
+    });
+    const data = await response.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      return NextResponse.json({ error: "Place not found" }, { status: 404 });
+    }
+
+    // Nominatim returns an array for lookup; take first
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const place = data[0] as any;
+
+    const photos: string[] = [];
+
+    return NextResponse.json({
+      placeId: String(place.place_id),
+      name:
+        (place.namedetails &&
+          (place.namedetails.name || place.namedetails["name:en"])) ||
+        place.display_name.split(",")[0],
+      address: place.display_name || "",
+      phone: place.extratags?.phone || "",
+      website: place.extratags?.website || "",
+      location: {
+        lat: parseFloat(place.lat),
+        lng: parseFloat(place.lon),
+      },
+      rating: 0,
+      totalRatings: 0,
+      priceLevel: undefined,
+      types: place.class
+        ? [place.class, place.type].filter(Boolean)
+        : [place.type].filter(Boolean),
+      openNow: null,
+      openingHours: [],
+      photos,
+      reviews: [],
+      googleMapsUrl: "",
+      businessStatus: "",
+    });
+  } catch (err: unknown) {
+    console.error("Place details error:", err);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
 }
