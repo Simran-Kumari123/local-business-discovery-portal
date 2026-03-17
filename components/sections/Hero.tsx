@@ -139,15 +139,15 @@ export default function Hero() {
   const handleSearch = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (query.trim()) {
-      router.push(`/businesses?q=${encodeURIComponent(query.trim())}`);
+      router.push(`/explore?q=${encodeURIComponent(query.trim())}`);
     } else {
-      router.push('/businesses');
+      router.push('/explore');
     }
   };
 
   const handleTagSearch = (tag: string) => {
     setQuery(tag);
-    router.push(`/businesses?q=${encodeURIComponent(tag)}`);
+    router.push(`/explore?q=${encodeURIComponent(tag)}`);
   };
 
   return (
@@ -240,10 +240,10 @@ export default function Hero() {
               {/* CTA buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link
-                  href="/businesses"
+                  href="/explore"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white text-blue-700 font-bold rounded-xl shadow-xl shadow-blue-900/20 hover:bg-blue-50 hover:scale-[1.03] transition-all duration-200"
                 >
-                  Explore Businesses <ArrowRight className="w-4 h-4" />
+                  Explore Near Me <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
                   href="/signup"
