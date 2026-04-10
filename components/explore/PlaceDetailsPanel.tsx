@@ -43,6 +43,7 @@ export interface PlaceDetails {
 interface PlaceDetailsPanelProps {
   place: PlaceDetails | null;
   loading: boolean;
+  error?: string | null;
   onClose: () => void;
   onDirections: (location: { lat: number; lng: number }, placeId: string) => void;
 }
@@ -245,10 +246,11 @@ function PhotoStrip({ photos, name }: { photos: string[]; name: string }) {
 export function PlaceDetailsPanel({
   place,
   loading,
+  error,
   onClose,
   onDirections,
 }: PlaceDetailsPanelProps) {
-  if (!loading && !place) return null;
+  if (!loading && !place && !error) return null;
 
   return (
     <div
@@ -272,12 +274,28 @@ export function PlaceDetailsPanel({
           <X className="w-4 h-4" />
         </button>
 
-        {loading ? (
+        {loading && !place ? (
           <div className="flex flex-col items-center justify-center py-28 gap-4">
             <div className="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
             </div>
-            <p className="text-sm text-muted-foreground font-medium">Loading details…</p>
+            <p className="text-sm text-muted-foreground font-medium">Fetching details…</p>
+          </div>
+        ) : error && !place ? (
+          <div className="flex flex-col items-center justify-center py-28 px-8 text-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <X className="w-8 h-8 text-red-600" />
+            </div>
+            <div>
+              <p className="font-bold text-foreground mb-1">Could Not Load Details</p>
+              <p className="text-sm text-muted-foreground">{error}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="mt-2 px-6 py-2 bg-secondary text-secondary-foreground font-semibold rounded-xl hover:bg-secondary/80 transition-colors"
+            >
+              Go Back
+            </button>
           </div>
         ) : (
           place && (
@@ -328,20 +346,20 @@ export function PlaceDetailsPanel({
                   >
                     <Route className="w-4 h-4" /> Get Directions
                   </button>
-                  {place.phone && (
+                  {(place.phone || loading) && (
                     <a
-                      href={`tel:${place.phone}`}
-                      className="flex items-center gap-2 px-4 py-2.5 border-2 border-border text-foreground font-semibold rounded-xl hover:bg-accent transition-colors"
+                      href={place.phone ? `tel:${place.phone}` : "#"}
+                      className={`flex items-center gap-2 px-4 py-2.5 border-2 border-border text-foreground font-semibold rounded-xl hover:bg-accent transition-colors ${loading && !place.phone ? "animate-pulse opacity-50" : ""}`}
                     >
-                      <Phone className="w-4 h-4 text-blue-500" /> {place.phone}
+                      <Phone className="w-4 h-4 text-blue-500" /> {place.phone || "Loading…"}
                     </a>
                   )}
-                  {place.website && (
+                  {(place.website || loading) && (
                     <a
-                      href={place.website.startsWith("http") ? place.website : `https://${place.website}`}
+                      href={place.website ? (place.website.startsWith("http") ? place.website : `https://${place.website}`) : "#"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2.5 border-2 border-border text-foreground font-semibold rounded-xl hover:bg-accent transition-colors"
+                      className={`flex items-center gap-2 px-4 py-2.5 border-2 border-border text-foreground font-semibold rounded-xl hover:bg-accent transition-colors ${loading && !place.website ? "animate-pulse opacity-50" : ""}`}
                     >
                       <Globe className="w-4 h-4 text-purple-500" /> Website
                     </a>
@@ -357,6 +375,13 @@ export function PlaceDetailsPanel({
                     </a>
                   )}
                 </div>
+
+                {loading && !place.phone && !place.website && (
+                  <div className="flex items-center gap-2 p-2 px-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-100 dark:border-emerald-900 animate-pulse">
+                    <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-tight">Fetching additional details…</span>
+                  </div>
+                )}
 
                 {/* Address */}
                 <div className="flex items-start gap-3 p-4 bg-secondary/60 rounded-xl border border-border">
@@ -376,17 +401,24 @@ export function PlaceDetailsPanel({
                 </div>
 
                 {/* Opening hours */}
-                {place.openingHours.length > 0 && (
-                  <div className="p-4 bg-secondary/60 rounded-xl border border-border">
+                {(place.openingHours.length > 0 || (loading && !place.openingHours.length)) && (
+                  <div className={`p-4 bg-secondary/60 rounded-xl border border-border ${loading && !place.openingHours.length ? "animate-pulse" : ""}`}>
                     <div className="flex items-center gap-2 mb-3">
                       <Clock className="w-4 h-4 text-orange-500" />
                       <span className="text-sm font-semibold text-foreground">Opening Hours</span>
                     </div>
-                    <div className="space-y-1 pl-6">
-                      {place.openingHours.map((hour, i) => (
-                        <p key={i} className="text-xs text-muted-foreground">{hour}</p>
-                      ))}
-                    </div>
+                    {place.openingHours.length > 0 ? (
+                      <div className="space-y-1 pl-6">
+                        {place.openingHours.map((hour, i) => (
+                          <p key={i} className="text-xs text-muted-foreground">{hour}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="pl-6 py-2">
+                        <div className="h-2 w-3/4 bg-border rounded-full animate-pulse mb-2" />
+                        <div className="h-2 w-1/2 bg-border rounded-full animate-pulse" />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -394,39 +426,60 @@ export function PlaceDetailsPanel({
                 <PhotoStrip photos={place.photos} name={place.name} />
 
                 {/* Reviews */}
-                {place.reviews.length > 0 && (
+                {(place.reviews.length > 0 || (loading && !place.reviews.length)) && (
                   <div>
                     <h4 className="text-sm font-semibold text-foreground mb-4">
                       💬 Reviews
                     </h4>
-                    <div className="space-y-4">
-                      {place.reviews.map((review, i) => (
-                        <div key={i} className="bg-secondary/60 rounded-xl p-4 border border-border">
-                          <div className="flex items-center gap-3 mb-2.5">
-                            {review.profilePhoto ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={review.profilePhoto} alt={review.author} className="w-9 h-9 rounded-full object-cover" />
-                            ) : (
-                              <div className="w-9 h-9 rounded-full bg-linear-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
-                                {review.author.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                            <div>
-                              <p className="text-sm font-semibold text-foreground">{review.author}</p>
-                              <div className="flex items-center gap-1.5">
-                                <div className="flex gap-0.5">
-                                  {[1, 2, 3, 4, 5].map((s) => (
-                                    <Star key={s} className={`w-3 h-3 ${s <= review.rating ? "fill-amber-400 text-amber-400" : "fill-none text-gray-300"}`} />
-                                  ))}
+                    {place.reviews.length > 0 ? (
+                      <div className="space-y-4">
+                        {place.reviews.map((review, i) => (
+                          <div key={i} className="bg-secondary/60 rounded-xl p-4 border border-border">
+                            {/* ... review content ... */}
+                            <div className="flex items-center gap-3 mb-2.5">
+                              {review.profilePhoto ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={review.profilePhoto} alt={review.author} className="w-9 h-9 rounded-full object-cover" />
+                              ) : (
+                                <div className="w-9 h-9 rounded-full bg-linear-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
+                                  {review.author.charAt(0).toUpperCase()}
                                 </div>
-                                <span className="text-[10px] text-muted-foreground">{review.time}</span>
+                              )}
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">{review.author}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <div className="flex gap-0.5">
+                                    {[1, 2, 3, 4, 5].map((s) => (
+                                      <Star key={s} className={`w-3 h-3 ${s <= review.rating ? "fill-amber-400 text-amber-400" : "fill-none text-gray-300"}`} />
+                                    ))}
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground">{review.time}</span>
+                                </div>
                               </div>
                             </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{review.text}</p>
                           </div>
-                          <p className="text-xs text-muted-foreground leading-relaxed">{review.text}</p>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {[1, 2].map(i => (
+                          <div key={i} className="bg-secondary/40 rounded-xl p-4 border border-border/50 animate-pulse">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-9 h-9 rounded-full bg-border" />
+                              <div className="space-y-2 flex-1">
+                                <div className="h-3 w-1/4 bg-border rounded-full" />
+                                <div className="h-2 w-1/6 bg-border rounded-full" />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="h-2 w-full bg-border rounded-full" />
+                              <div className="h-2 w-5/6 bg-border rounded-full" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

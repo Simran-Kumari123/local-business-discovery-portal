@@ -28,6 +28,10 @@ export async function GET(req: NextRequest) {
           "User-Agent": "local-business-discovery-portal/1.0 (student demo)",
         },
       });
+      if (!response.ok) {
+        console.error(`Nominatim lookup failed with status: ${response.status}`);
+        throw new Error("Nominatim lookup failed");
+      }
       const data = await response.json();
 
       if (!Array.isArray(data) || data.length === 0) {
@@ -91,6 +95,10 @@ export async function GET(req: NextRequest) {
         "User-Agent": "local-business-discovery-portal/1.0 (student demo)",
       },
     });
+    if (!response.ok) {
+      console.error(`Nominatim place_id lookup failed with status: ${response.status}`);
+      throw new Error("Nominatim place_id lookup failed");
+    }
     const data = await response.json();
 
     if (!Array.isArray(data) || data.length === 0) {

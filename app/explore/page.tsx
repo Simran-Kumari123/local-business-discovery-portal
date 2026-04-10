@@ -435,14 +435,53 @@ function ExploreContent() {
   /* ════════════════════════════════════════
      PLACE DETAILS
   ════════════════════════════════════════ */
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+
   const fetchPlaceDetails = async (placeId: string) => {
+    // 1. Clear error
+    setDetailsError(null);
+    
+    // 2. See if we already have basic info for this place in our search results
+    const existing = places.find(p => p.placeId === placeId);
+    if (existing) {
+      // Show what we have immediately
+      setSelectedPlace({
+        placeId: existing.placeId,
+        name: existing.name,
+        address: existing.address,
+        location: existing.location,
+        rating: existing.rating,
+        totalRatings: existing.totalRatings,
+        priceLevel: existing.priceLevel,
+        types: existing.types,
+        openNow: existing.openNow,
+        phone: "",
+        website: "",
+        openingHours: [],
+        photos: existing.photo ? [existing.photo] : [],
+        reviews: [],
+        googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${existing.location.lat},${existing.location.lng}`,
+        businessStatus: existing.businessStatus,
+      });
+    } else {
+      setSelectedPlace(null);
+    }
+
     setDetailsLoading(true);
+    
     try {
       const res = await fetch(`/api/places/details?placeId=${placeId}`);
+      if (!res.ok) throw new Error("Failed to fetch place details");
+      
       const data = await res.json();
-      if (!data.error) setSelectedPlace(data);
+      if (data.error) {
+        setDetailsError(data.error);
+      } else {
+        setSelectedPlace(data);
+      }
     } catch (e) {
       console.error(e);
+      setDetailsError("Unable to load place details. Please try again.");
     } finally {
       setDetailsLoading(false);
     }
@@ -743,11 +782,15 @@ function ExploreContent() {
       </section>
 
       {/* ── PLACE DETAILS PANEL ─ */}
-      {(selectedPlace || detailsLoading) && (
+      {(selectedPlace || detailsLoading || detailsError) && (
         <PlaceDetailsPanel
           place={selectedPlace}
           loading={detailsLoading}
-          onClose={() => setSelectedPlace(null)}
+          error={detailsError}
+          onClose={() => {
+            setSelectedPlace(null);
+            setDetailsError(null);
+          }}
           onDirections={getDirections}
         />
       )}
