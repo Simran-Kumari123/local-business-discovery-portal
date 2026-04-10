@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
+  Globe,
 } from "lucide-react";
 import { Suspense } from "react";
 
@@ -108,11 +109,14 @@ function ExploreContent() {
   const [tileUrl, setTileUrl] = useState("");
   const [tileAttribution, setTileAttribution] = useState("");
   const [provider, setProvider] = useState<"google" | "osm" | "">("");
+  const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
 
   // Map refs
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<any>(null);
   const leafletMapRef = useRef<any>(null);
+  const leafletTileLayerRef = useRef<any>(null);
+  const leafletLabelLayerRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const userMarkerRef = useRef<any>(null);
 
@@ -158,9 +162,9 @@ function ExploreContent() {
         center,
         zoom: 13,
         mapId: "explore_map",
+        mapTypeId: mapType === "satellite" ? "hybrid" : "roadmap",
         streetViewControl: false,
         mapTypeControl: false,
-        styles: [{ featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }],
       });
       googleMapRef.current = map;
       if (userLocation) addUserMarker(map, userLocation);
@@ -171,15 +175,29 @@ function ExploreContent() {
           const mod = (globalThis as any).L || (await import("leaflet"));
           const L = (mod && (mod as any).default) || mod;
           const map = L.map(mapRef.current).setView([center.lat, center.lng], 13);
-          // CartoDB Voyager — premium map style, free, no API key
-          L.tileLayer(
-            tileUrl || "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-            {
-              attribution: tileAttribution || '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
-              subdomains: "abcd",
+          
+          const layerUrl = mapType === "satellite" 
+            ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            : (tileUrl || "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png");
+          
+          const attribution = mapType === "satellite"
+            ? "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community"
+            : (tileAttribution || '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>');
+
+          const layer = L.tileLayer(layerUrl, {
+            attribution,
+            subdomains: "abcd",
+            maxZoom: 20,
+          }).addTo(map);
+          
+          leafletTileLayerRef.current = layer;
+
+          if (mapType === "satellite") {
+            leafletLabelLayerRef.current = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", {
               maxZoom: 20,
-            }
-          ).addTo(map);
+            }).addTo(map);
+          }
+
           leafletMapRef.current = map;
           if (userLocation) addUserMarker(map, userLocation);
         } catch (e) { console.error(e); }
@@ -187,6 +205,46 @@ function ExploreContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapLoaded, provider]);
+
+  /* ── Handle map type change ─ */
+  useEffect(() => {
+    if (!mapLoaded) return;
+    if (provider === "google" && googleMapRef.current) {
+      googleMapRef.current.setMapTypeId(mapType === "satellite" ? "hybrid" : "roadmap");
+    } else if (provider === "osm" && leafletMapRef.current) {
+      (async () => {
+        const mod = (globalThis as any).L || (await import("leaflet"));
+        const L = (mod && (mod as any).default) || mod;
+        
+        if (leafletTileLayerRef.current) {
+          leafletMapRef.current.removeLayer(leafletTileLayerRef.current);
+        }
+        if (leafletLabelLayerRef.current) {
+          leafletMapRef.current.removeLayer(leafletLabelLayerRef.current);
+        }
+
+        const layerUrl = mapType === "satellite" 
+          ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          : (tileUrl || "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png");
+        
+        const attribution = mapType === "satellite"
+          ? "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community"
+          : (tileAttribution || '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>');
+
+        leafletTileLayerRef.current = L.tileLayer(layerUrl, {
+          attribution,
+          subdomains: "abcd",
+          maxZoom: 20,
+        }).addTo(leafletMapRef.current);
+
+        if (mapType === "satellite") {
+          leafletLabelLayerRef.current = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", {
+            maxZoom: 20,
+          }).addTo(leafletMapRef.current);
+        }
+      })();
+    }
+  }, [mapType, mapLoaded, provider, tileUrl, tileAttribution]);
 
   /* ── Update markers when places change ─ */
   useEffect(() => {
@@ -640,7 +698,33 @@ function ExploreContent() {
                 style={{ height: viewMode === "map" ? "calc(100vh - 250px)" : "calc(100vh - 200px)" }}
               >
                 {provider === "osm" || (provider === "google" && apiKey) ? (
-                  <div ref={mapRef} className="w-full h-full" id="explore-google-map" />
+                  <div className="relative w-full h-full">
+                    <div ref={mapRef} className="w-full h-full" id="explore-google-map" />
+                    
+                    {/* Satellite Toggle */}
+                    <div className="absolute bottom-6 right-6 z-[1000]">
+                      <button
+                        onClick={() => setMapType(m => m === "standard" ? "satellite" : "standard")}
+                        className={`group flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border shadow-xl transition-all duration-300 active:scale-95 ${
+                          mapType === "satellite"
+                            ? "bg-emerald-600 border-emerald-500 text-white"
+                            : "bg-white/95 dark:bg-slate-900/95 border-border text-foreground hover:shadow-2xl hover:border-emerald-200"
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-lg transition-transform duration-500 group-hover:rotate-12 ${
+                          mapType === "satellite" ? "bg-white/20" : "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600"
+                        }`}>
+                          <Globe className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col items-start leading-none">
+                          <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider mb-0.5">Map View</span>
+                          <span className="text-xs font-extra-bold">
+                            {mapType === "satellite" ? "Standard" : "Satellite"}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-secondary/50">
                     <div className="text-center p-8">
