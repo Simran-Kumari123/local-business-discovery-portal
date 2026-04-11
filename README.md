@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌐 Local Business Discovery Portal
 
-## Getting Started
+## 📌 Project Description
+The Local Business Discovery Portal is a full-stack web application that helps users find nearby businesses such as shops, services, and vendors. It provides a platform for business owners to register and showcase their services, while users can search and explore businesses easily.
 
-First, run the development server:
+---
 
+## 🎯 Objectives
+- To connect local businesses with customers
+- To provide an easy search and discovery system
+- To improve visibility of small/local businesses
+
+---
+
+## 🚀 Features
+- 🔐 User Authentication (Login / Signup)
+- 📋 Business Listing
+- 🔍 Search & Filter Functionality
+- 📞 Contact Page
+- 🗺️ Map Integration (if added)
+- 📱 Responsive UI
+
+---
+
+## 🛠️ Tech Stack
+- Frontend: Next.js (React)
+- Backend: Node.js
+- Database: (MongoDB / MySQL - update yours)
+- Styling: CSS / Tailwind
+
+---
+
+## ⚙️ Installation & Setup
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/Simran-Kumari123/local-business-discovery-portal.git
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Navigate to project folder:
+```bash
+cd local-business-discovery-portal
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Install dependencies:
+```bash
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Run the project:
+```bash
+npm run dev
+```
 
-## Learn More
+5. Open browser:
+```
+http://localhost:3000
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📸 Project Screenshots
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 🏠 Home Page
+Displays the main landing page where users can explore the platform.
+![Home](home page.png)
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 🔐 Login Page
+Allows users to securely log into the system.
+![Login](login page.png)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+### 📝 Signup Page
+New users can register and create an account.
+![Signup](signup page.png)
+
+---
+
+### 📋 Business Listing
+Shows all available local businesses with details.
+![Business](business listing.png)
+
+---
+
+### 📞 Contact Page
+Users can contact or inquire about services.
+![Contact](contact page.png)
+
+---
+
+## 📈 Future Scope
+- Add reviews and ratings
+- Integrate payment system
+- AI-based recommendations
+- Mobile application version
+
+---
+
+## 👨‍💻 Author
+Simran Kumari
+
+---
+
+## 📜 License
+This project is for academic purposes.
